@@ -31,7 +31,10 @@ print(classes)
 
 print("break")
 
-transformations = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor()])
+transformations = transforms.Compose([transforms.Resize((256, 256)),
+                                transforms.ToTensor(),
+                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
 
 dataset = ImageFolder(data_dir, transform = transformations)
 print(len(dataset))
