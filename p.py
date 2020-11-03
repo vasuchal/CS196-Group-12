@@ -9,8 +9,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.datasets import ImageFolder
 import os
+import matplotlib.pyplot as plt
+import time
+import os
+import PIL.Image as Image
+from IPython.display import display
 
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#How do you connect to HAL?
 
 # Input data files are available in the read-only "../input/" directory
 # For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
@@ -35,7 +41,6 @@ transformations = transforms.Compose([transforms.Resize((256, 256)), transforms.
 
 dataset = ImageFolder(data_dir, transform = transformations)
 print(len(dataset))
-import matplotlib.pyplot as plt
 %matplotlib inline
 
 def show_sample(img, label):
