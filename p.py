@@ -37,16 +37,111 @@ print(classes)
 
 print("break")
 
-transformations = transforms.Compose([transforms.Resize((256, 256)),
+transformations = transforms.Compose([transforms.Resize((256, 256)), transforms.RandomHorizontalFlip(),
+                                transforms.RandomRotation(25),
                                 transforms.ToTensor(),
                                 transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+#Normalize changing dimensions?
 
+dataset = ImageFolder(train_dir, transform = transformations)
+dataset2 = torchvision.datasets.ImageFolder(test_dir, transform = test_tfms)
+testloader = torch.utils.data.DataLoader(dataset2, batch_size = 5, shuffle=False, num_workers = 2)
+#print(len(dataset))
+#%matplotlib inline
 
-dataset = ImageFolder(data_dir, transform = transformations)
-print(len(dataset))
-%matplotlib inline
-
-def show_sample(img, label):
-    print("Label:", dataset.classes[label], "(Class No: "+ str(label) + ")")
-    plt.imshow(img.permute(1, 2, 0))
+def train_model(model, criterion, optimizer, scheduler, n_epochs = 2):
     
+    losses = []
+    accuracies = []
+    test_accuracies = []
+    # set the model to train mode initially
+    model.train()
+    for epoch in range(n_epochs):
+        since = time.time()
+        running_loss = 0.0
+        running_correct = 0.0
+        for i, data in enumerate(trainloader, 0):
+
+            # get the inputs and assign them to cuda
+            inputs, labels = data
+            #inputs = inputs.to(device).half() # uncomment for half precision model
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            optimizer.zero_grad()
+            
+            # forward + backward + optimize
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
+            # calculate the loss/acc later
+            running_loss += loss.item()
+            running_correct += (labels==predicted).sum().item()
+
+        epoch_duration = time.time()-since
+        epoch_loss = running_loss/len(trainloader)
+        epoch_acc = 100/32*running_correct/len(trainloader)
+        print("Epoch %s, duration: %d s, loss: %.4f, acc: %.4f" % (epoch+1, epoch_duration, epoch_loss, epoch_acc))
+        
+        losses.append(epoch_loss)
+        accuracies.append(epoch_acc)
+        
+        # switch the model to eval mode to evaluate on test data
+        model.eval()
+        test_acc = eval_model(model)
+        test_accuracies.append(test_acc)
+        
+        # re-set the model to train mode after validating
+        model.train()
+        scheduler.step(test_acc)
+        since = time.time()
+    print('Finished Training')
+    return model, losses, accuracies, test_accuracies
+    
+def eval_model(model):
+    correct = 0.0
+    total = 0.0
+    with torch.no_grad():
+        for i, data in enumerate(testloader, 0):
+            images, labels = data
+            #images = images.to(device).half() # uncomment for half precision model
+            images = images.to(device)
+            labels = labels.to(device)
+            
+            outputs = model_ft(images)
+            _, predicted = torch.max(outputs.data, 1)
+            
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+    test_acc = 100.0 * correct / total
+    print('Accuracy of the network on the test images: %d %%' % (
+        test_acc))
+    return test_acc
+
+
+#def show_sample(img, label):
+    #print("Label:", dataset.classes[label], "(Class No: "+ str(label) + ")")
+    #plt.imshow(img.permute(1, 2, 0))
+
+
+#Front end file input would run this function 
+model_ft.eval()
+
+# transforms for the input image
+loader = transforms.Compose([transforms.Resize((256, 256)),
+                                transforms.ToTensor(),
+                                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+image = Image.open(dataset_dir+" inputted file from frotnend")
+image = loader(image).float()
+image = torch.autograd.Variable(image, requires_grad=True)
+image = image.unsqueeze(0)
+image = image.cuda()
+output = model_ft(image)
+conf, predicted = torch.max(output.data, 1)
+
+#next step: plotting graphs
+
+
