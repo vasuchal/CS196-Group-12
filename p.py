@@ -14,7 +14,7 @@ import time
 import os
 import PIL.Image as Image
 from IPython.display import display
-
+#test comment
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #How do you connect to HAL?
 
